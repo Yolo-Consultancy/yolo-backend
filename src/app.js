@@ -11,7 +11,7 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.json({ 
     success: true,
-    message: 'Yolo Backend is running!' 
+    message: 'Yolo Backend is running successfully!' 
   });
 });
 
