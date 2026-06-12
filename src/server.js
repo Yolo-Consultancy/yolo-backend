@@ -1,12 +1,12 @@
-require("dotenv").config();
-
 const app = require("./app");
 const connectDB = require("./config/db");
+const env = require("./config/env");
 
-const PORT = process.env.PORT || 5000;
+async function bootstrap() {
+  await connectDB();
+  app.listen(env.port, () => {
+    console.log(`YOLO API démarrée sur http://localhost:${env.port}`);
+  });
+}
 
-connectDB();
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+bootstrap();
