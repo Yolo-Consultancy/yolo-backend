@@ -49,10 +49,11 @@ function computeTotal(days, vehiclePrice, withChauffeur, driverPrice) {
 }
 
 async function createBooking(payload) {
-  const vehicle = await Vehicle.findOne({
-    $or: [{ slug: payload.vehicleId }, { _id: mongoose.isValidObjectId(payload.vehicleId) ? payload.vehicleId : null }],
-    active: true,
-  });
+  const vehicleOr = [{ slug: payload.vehicleId }];
+  if (mongoose.Types.ObjectId.isValid(payload.vehicleId)) {
+    vehicleOr.push({ _id: payload.vehicleId });
+  }
+  const vehicle = await Vehicle.findOne({ $or: vehicleOr, active: true });
   if (!vehicle) throw new ApiError(404, "NOT_FOUND", "Véhicule introuvable");
 
   const startDate = new Date(payload.startDate);
@@ -76,28 +77,34 @@ async function createBooking(payload) {
   const totalPrice = computeTotal(days, vehiclePrice, withChauffeur, driverPrice);
 
   let client = null;
-  if (payload.clientEmail || payload.clientPhone) {
-    client = await Client.findOne({
-      $or: [
-        payload.clientEmail ? { email: payload.clientEmail } : null,
-        payload.clientPhone ? { phone: payload.clientPhone } : null,
-      ].filter(Boolean),
-    });
-    if (!client) {
-      const [firstName = "", ...rest] = (payload.clientName || "").split(" ");
-      client = await Client.create({
-        firstName,
-        lastName: rest.join(" "),
-        email: payload.clientEmail,
-        phone: payload.clientPhone,
-        totalBookings: 1,
-        totalSpent: totalPrice,
-      });
-    } else {
-      client.totalBookings += 1;
-      client.totalSpent += totalPrice;
-      await client.save();
+  if (payload.clientId && mongoose.Types.ObjectId.isValid(payload.clientId)) {
+    client = await Client.findById(payload.clientId);
+  }
+  if (!client && (payload.clientEmail || payload.clientPhone)) {
+    const clientOr = [];
+    if (payload.clientEmail) {
+      clientOr.push({ email: String(payload.clientEmail).trim().toLowerCase() });
     }
+    if (payload.clientPhone) {
+      const digits = String(payload.clientPhone).replace(/\D/g, "");
+      if (digits) clientOr.push({ phone: { $regex: digits } });
+    }
+    if (clientOr.length) client = await Client.findOne({ $or: clientOr });
+  }
+  if (!client && (payload.clientEmail || payload.clientPhone || payload.clientName)) {
+    const [firstName = "", ...rest] = (payload.clientName || "").split(" ");
+    client = await Client.create({
+      firstName,
+      lastName: rest.join(" "),
+      email: payload.clientEmail ? String(payload.clientEmail).trim().toLowerCase() : undefined,
+      phone: payload.clientPhone,
+      totalBookings: 1,
+      totalSpent: totalPrice,
+    });
+  } else if (client) {
+    client.totalBookings = (client.totalBookings || 0) + 1;
+    client.totalSpent = (client.totalSpent || 0) + totalPrice;
+    await client.save();
   }
 
   const booking = await Booking.create({
@@ -128,18 +135,31 @@ async function createBooking(payload) {
 async function listBookings(query, isAdmin) {
   const { page, limit, skip } = parsePagination(query);
   const filter = {};
-  if (query.status) filter.status = query.status;
-  if (query.dateFrom || query.dateTo) {
-    filter.startDate = {};
-    if (query.dateFrom) filter.startDate.$gte = new Date(query.dateFrom);
-    if (query.dateTo) filter.startDate.$lte = new Date(query.dateTo);
-  }
-  if (query.q) {
-    filter.$or = [
-      { clientName: new RegExp(query.q, "i") },
-      { vehicleName: new RegExp(query.q, "i") },
-      { clientPhone: new RegExp(query.q, "i") },
-    ];
+
+  if (!isAdmin) {
+    const or = [];
+    if (query.clientEmail) {
+      or.push({ clientEmail: String(query.clientEmail).trim().toLowerCase() });
+    }
+    if (query.clientPhone) {
+      const digits = String(query.clientPhone).replace(/\D/g, "");
+      if (digits) or.push({ clientPhone: { $regex: digits } });
+    }
+    if (or.length) filter.$or = or;
+  } else {
+    if (query.status) filter.status = query.status;
+    if (query.dateFrom || query.dateTo) {
+      filter.startDate = {};
+      if (query.dateFrom) filter.startDate.$gte = new Date(query.dateFrom);
+      if (query.dateTo) filter.startDate.$lte = new Date(query.dateTo);
+    }
+    if (query.q) {
+      filter.$or = [
+        { clientName: new RegExp(query.q, "i") },
+        { vehicleName: new RegExp(query.q, "i") },
+        { clientPhone: new RegExp(query.q, "i") },
+      ];
+    }
   }
 
   const [items, total] = await Promise.all([

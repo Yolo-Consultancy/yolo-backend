@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const missionSchema = new mongoose.Schema(
   {
     booking: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
-    assignee: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    assignee: { type: mongoose.Schema.Types.ObjectId, ref: "Driver" },
     assigneeName: String,
     type: { type: String, enum: ["livraison", "chauffeur", "recuperation"] },
     scheduledAt: Date,

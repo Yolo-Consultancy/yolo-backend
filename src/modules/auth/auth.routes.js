@@ -1,9 +1,10 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
 const { validate } = require("../../middlewares/validate.middleware");
-const { authenticate } = require("../../middlewares/auth.middleware");
+const { authenticate, authenticateClient } = require("../../middlewares/auth.middleware");
 const { loginSchema } = require("./auth.validators");
 const controller = require("./auth.controller");
+const clientAuth = require("./client-auth.controller");
 
 const router = express.Router();
 
@@ -13,6 +14,9 @@ const loginLimiter = rateLimit({
   message: { success: false, error: { code: "RATE_LIMIT", message: "Trop de tentatives" } },
 });
 
+router.post("/client/register", clientAuth.register);
+router.post("/client/login", loginLimiter, clientAuth.login);
+router.get("/client/me", authenticateClient, clientAuth.me);
 router.post("/login", loginLimiter, validate(loginSchema), controller.login);
 router.post("/refresh", controller.refresh);
 router.post("/logout", authenticate, controller.logout);

@@ -1,4 +1,5 @@
 const asyncHandler = require("../../utils/asyncHandler");
+const ApiError = require("../../utils/ApiError");
 const { ok, paginated } = require("../../utils/response");
 const service = require("./bookings.service");
 
@@ -7,7 +8,16 @@ const create = asyncHandler(async (req, res) => {
 });
 
 const list = asyncHandler(async (req, res) => {
-  const result = await service.listBookings({ ...req.query, limit: req.query.limit || 500 }, !!req.user);
+  const isAdmin = req.user && ["admin", "agent"].includes(req.user.role);
+  const isClientLookup = !!(req.query.clientEmail || req.query.clientPhone);
+  if (!isAdmin && !isClientLookup) {
+    throw new ApiError(401, "UNAUTHORIZED", "Token manquant");
+  }
+
+  const result = await service.listBookings(
+    { ...req.query, limit: req.query.limit || 500 },
+    isAdmin,
+  );
   if (req.query.page) {
     paginated(res, result.items, result.meta);
   } else {

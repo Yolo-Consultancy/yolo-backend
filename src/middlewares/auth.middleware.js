@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const env = require("../config/env");
 const ApiError = require("../utils/ApiError");
 const User = require("../models/User");
+const Client = require("../models/Client");
 
 async function authenticate(req, _res, next) {
   const header = req.headers.authorization || "";
@@ -45,4 +46,23 @@ function optionalAuth(req, _res, next) {
   });
 }
 
-module.exports = { authenticate, requireRole, optionalAuth };
+async function authenticateClient(req, _res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) return next(new ApiError(401, "UNAUTHORIZED", "Token manquant"));
+
+  try {
+    const payload = jwt.verify(token, env.jwtAccessSecret);
+    if (payload.type !== "client") {
+      return next(new ApiError(401, "UNAUTHORIZED", "Token client invalide"));
+    }
+    const client = await Client.findById(payload.sub).select("-passwordHash");
+    if (!client) return next(new ApiError(401, "UNAUTHORIZED", "Client introuvable"));
+    req.client = client;
+    next();
+  } catch {
+    next(new ApiError(401, "UNAUTHORIZED", "Token invalide ou expiré"));
+  }
+}
+
+module.exports = { authenticate, authenticateClient, requireRole, optionalAuth };

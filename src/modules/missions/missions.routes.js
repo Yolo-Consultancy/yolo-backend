@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.use(authenticate, requireRole("admin", "agent"));
 router.get("/", controller.list);
+router.get("/busy-drivers", controller.busyDrivers);
 router.get("/:id", controller.getOne);
 router.post("/", controller.create);
 router.put("/:id", controller.upsert);

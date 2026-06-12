@@ -4,8 +4,10 @@ const clientSchema = new mongoose.Schema(
   {
     firstName: String,
     lastName: String,
-    email: String,
+    email: { type: String, lowercase: true },
     phone: String,
+    countryCode: String,
+    passwordHash: String,
     notes: String,
     totalBookings: { type: Number, default: 0 },
     totalSpent: { type: Number, default: 0 },

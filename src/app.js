@@ -19,12 +19,25 @@ const contactRoutes = require("./modules/contact/contact.routes");
 const statsRoutes = require("./modules/stats/stats.routes");
 const notificationsRoutes = require("./modules/notifications/notifications.routes");
 const paymentsRoutes = require("./modules/payments/payments.routes");
+const supportRoutes = require("./modules/support/support.routes");
 
 const app = express();
 
 app.use(pinoHttp());
 app.use(helmet());
-app.use(cors({ origin: env.corsOrigin, credentials: true }));
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (env.corsOrigins.includes(origin)) return callback(null, true);
+      if (env.nodeEnv === "development" && /^http:\/\/localhost:\d+$/.test(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS blocked: ${origin}`));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 // Express 5 : req.query est en lecture seule — on ne sanitize que body/params
@@ -57,6 +70,7 @@ v1.use("/stats", statsRoutes);
 app.use("/api/v1", v1);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/payments", paymentsRoutes);
+app.use("/api/v1/support", supportRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
