@@ -1,15 +1,17 @@
 const asyncHandler = require("../../utils/asyncHandler");
 const { ok } = require("../../utils/response");
-const env = require("../../config/env");
+const { notifyAdminNewBooking } = require("../../services/booking-email.service");
 const { sendMail } = require("../../services/mail.service");
 
 const newBooking = asyncHandler(async (req, res) => {
   const { to, subject, html, booking } = req.body;
-  const result = await sendMail({
-    to: to || env.adminBootstrapEmail,
-    subject: subject || `Nouvelle réservation – ${booking?.vehicleName}`,
-    html: html || `<p>Nouvelle réservation de ${booking?.clientName}</p>`,
-  });
+  const result = booking
+    ? await notifyAdminNewBooking(booking)
+    : await sendMail({
+        to,
+        subject: subject || "Nouvelle réservation YOLO",
+        html: html || "<p>Nouvelle réservation</p>",
+      });
   ok(res, { notified: result.sent, ...result });
 });
 

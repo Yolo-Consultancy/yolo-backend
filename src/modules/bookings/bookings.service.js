@@ -7,6 +7,10 @@ const Driver = require("../../models/Driver");
 const Client = require("../../models/Client");
 const { toBooking } = require("../../utils/serializers");
 const { parsePagination } = require("../../utils/pagination");
+const {
+  notifyAdminNewBooking,
+  notifyClientBookingStatusChange,
+} = require("../../services/booking-email.service");
 
 const ACTIVE_STATUSES = ["en_attente", "confirmee", "payee"];
 
@@ -129,7 +133,13 @@ async function createBooking(payload) {
     status: payload.status || "en_attente",
   });
 
-  return toBooking(booking);
+  const bookingDto = toBooking(booking);
+  const emailResult = await notifyAdminNewBooking(bookingDto);
+  if (!emailResult.sent) {
+    console.warn("[YOLO] Notification admin non envoyée:", emailResult.reason || "unknown");
+  }
+
+  return { ...bookingDto, adminEmailSent: emailResult.sent, adminEmailReason: emailResult.reason };
 }
 
 async function listBookings(query, isAdmin) {
@@ -177,9 +187,28 @@ async function getBooking(id) {
 }
 
 async function updateStatus(id, status) {
-  const booking = await Booking.findByIdAndUpdate(id, { status }, { new: true });
-  if (!booking) throw new ApiError(404, "NOT_FOUND", "Réservation introuvable");
-  return toBooking(booking);
+  const existing = await Booking.findById(id);
+  if (!existing) throw new ApiError(404, "NOT_FOUND", "Réservation introuvable");
+
+  const previousStatus = existing.status;
+  existing.status = status;
+  await existing.save();
+
+  const bookingDto = toBooking(existing);
+  let clientEmailResult = { sent: false, reason: "status_unchanged" };
+
+  if (previousStatus !== status) {
+    clientEmailResult = await notifyClientBookingStatusChange(bookingDto, previousStatus, status);
+    if (!clientEmailResult.sent && clientEmailResult.reason !== "no_client_email") {
+      console.warn("[YOLO] Notification client non envoyée:", clientEmailResult.reason || "unknown");
+    }
+  }
+
+  return {
+    ...bookingDto,
+    clientEmailSent: clientEmailResult.sent,
+    clientEmailReason: clientEmailResult.reason,
+  };
 }
 
 async function assignDriver(id, driverId) {

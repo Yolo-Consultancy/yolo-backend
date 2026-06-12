@@ -3,7 +3,7 @@ const Settings = require("../../models/Settings");
 const defaults = {
   companyName: "YOLO Le Concierge",
   whatsappNumber: "243828863897",
-  contactEmail: "contact@yolo.cd",
+  contactEmail: "contact@yololeconcierge.com",
   address: "Kinshasa, République Démocratique du Congo",
   heroTitle: "Une seule plateforme, tous vos services.",
   heroSubtitle: "Conciergerie premium 24/7 — Mobilité, Logistique, Sur Mesure.",

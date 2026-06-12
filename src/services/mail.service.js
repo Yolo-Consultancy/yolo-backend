@@ -44,8 +44,12 @@ async function sendMail({ to, subject, html, text }) {
     return { sent: false, reason: "no_recipient" };
   }
 
+  const fromAddress = env.mailFromName
+    ? `"${env.mailFromName}" <${env.mailFrom}>`
+    : env.mailFrom;
+
   const payload = {
-    from: env.mailFrom,
+    from: fromAddress,
     to: to.trim(),
     subject: subject || "YOLO Le Concierge",
     html: html || "",
