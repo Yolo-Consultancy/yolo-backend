@@ -72,10 +72,17 @@ async function upsertMission(body) {
     if (!mission) throw new ApiError(404, "NOT_FOUND", "Mission introuvable");
 
     const previousAssignee = mission.assignee ? String(mission.assignee) : "";
+    const previousBooking = mission.booking ? String(mission.booking) : "";
     const assigneeChanged = !!assigneeId && previousAssignee !== assigneeId;
+    const effectiveAssignee = assigneeId || previousAssignee;
+    const effectiveBooking = bookingId || previousBooking;
 
     if (assigneeChanged) {
       await assertDriverNotBusy(assigneeId, missionId);
+    }
+
+    if (!driver && effectiveAssignee) {
+      driver = await Driver.findById(effectiveAssignee);
     }
 
     Object.assign(mission, {
@@ -89,14 +96,22 @@ async function upsertMission(body) {
     });
     await mission.save();
 
+    const bookingLinked = !!effectiveAssignee && !!effectiveBooking && previousBooking !== effectiveBooking;
+    const shouldNotify = !!effectiveAssignee && (assigneeChanged || bookingLinked);
+
     const emailResult = await maybeNotifyDriver({
       missionDoc: mission,
       driver,
       bookingId: mission.booking,
-      shouldNotify: assigneeChanged,
+      shouldNotify,
     });
 
-    return { ...toMission(mission), emailSent: emailResult.sent, emailReason: emailResult.reason };
+    return {
+      ...toMission(mission),
+      emailSent: emailResult.sent,
+      emailReason: emailResult.reason,
+      emailPreviewUrl: emailResult.previewUrl,
+    };
   }
 
   if (assigneeId) {
@@ -120,7 +135,12 @@ async function upsertMission(body) {
     shouldNotify: !!assigneeId,
   });
 
-  return { ...toMission(mission), emailSent: emailResult.sent, emailReason: emailResult.reason };
+  return {
+    ...toMission(mission),
+    emailSent: emailResult.sent,
+    emailReason: emailResult.reason,
+    emailPreviewUrl: emailResult.previewUrl,
+  };
 }
 
 async function deleteMission(id) {

@@ -2,10 +2,15 @@ const nodemailer = require("nodemailer");
 const env = require("../config/env");
 
 let transport = null;
+let devTransportPromise = null;
+
+function hasSmtpConfig() {
+  return !!(env.mailHost && env.mailUser && env.mailPass);
+}
 
 function getTransport() {
   if (transport !== null) return transport;
-  if (!env.mailHost || !env.mailUser || !env.mailPass) {
+  if (!hasSmtpConfig()) {
     transport = false;
     return transport;
   }
@@ -18,12 +23,27 @@ function getTransport() {
   return transport;
 }
 
+async function getDevTransport() {
+  if (!devTransportPromise) {
+    devTransportPromise = (async () => {
+      const testAccount = await nodemailer.createTestAccount();
+      console.log("[YOLO mail dev] Boîte de test Ethereal :", testAccount.user);
+      return nodemailer.createTransport({
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false,
+        auth: { user: testAccount.user, pass: testAccount.pass },
+      });
+    })();
+  }
+  return devTransportPromise;
+}
+
 async function sendMail({ to, subject, html, text }) {
   if (!to?.trim()) {
     return { sent: false, reason: "no_recipient" };
   }
 
-  const tx = getTransport();
   const payload = {
     from: env.mailFrom,
     to: to.trim(),
@@ -31,6 +51,12 @@ async function sendMail({ to, subject, html, text }) {
     html: html || "",
     text: text || undefined,
   };
+
+  let tx = getTransport();
+
+  if (!tx && env.nodeEnv === "development") {
+    tx = await getDevTransport();
+  }
 
   if (!tx) {
     console.log("[YOLO mail — SMTP non configuré]", {
@@ -43,12 +69,18 @@ async function sendMail({ to, subject, html, text }) {
 
   try {
     const info = await tx.sendMail(payload);
-    console.log("[YOLO mail envoyé]", { to: payload.to, subject: payload.subject, messageId: info.messageId });
-    return { sent: true, messageId: info.messageId };
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    console.log("[YOLO mail envoyé]", {
+      to: payload.to,
+      subject: payload.subject,
+      messageId: info.messageId,
+      ...(previewUrl ? { previewUrl } : {}),
+    });
+    return { sent: true, messageId: info.messageId, previewUrl: previewUrl || undefined };
   } catch (err) {
     console.error("[YOLO mail erreur]", err.message);
     return { sent: false, reason: err.message };
   }
 }
 
-module.exports = { sendMail };
+module.exports = { sendMail, hasSmtpConfig };
