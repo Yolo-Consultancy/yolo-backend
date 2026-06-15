@@ -252,6 +252,32 @@ async function deleteBooking(id) {
   return { deleted: true };
 }
 
+async function resolveVehicleRef(vehicleIdParam) {
+  const vehicleOr = [{ slug: vehicleIdParam }];
+  if (mongoose.Types.ObjectId.isValid(vehicleIdParam)) {
+    vehicleOr.push({ _id: vehicleIdParam });
+  }
+  const vehicle = await Vehicle.findOne({ $or: vehicleOr, active: true });
+  if (!vehicle) throw new ApiError(404, "NOT_FOUND", "Véhicule introuvable");
+  return vehicle;
+}
+
+/** Plages de dates déjà réservées pour un véhicule (réservations actives). */
+async function getOccupiedDates(vehicleIdParam) {
+  const vehicle = await resolveVehicleRef(vehicleIdParam);
+  const bookings = await Booking.find({
+    vehicle: vehicle._id,
+    status: { $in: ACTIVE_STATUSES },
+  })
+    .select("startDate endDate")
+    .sort({ startDate: 1 });
+
+  return bookings.map((b) => ({
+    startDate: b.startDate.toISOString().slice(0, 10),
+    endDate: b.endDate.toISOString().slice(0, 10),
+  }));
+}
+
 module.exports = {
   createBooking,
   listBookings,
@@ -260,4 +286,5 @@ module.exports = {
   assignDriver,
   deleteBooking,
   isDriverAvailable,
+  getOccupiedDates,
 };

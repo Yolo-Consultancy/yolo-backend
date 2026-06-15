@@ -41,4 +41,10 @@ const remove = asyncHandler(async (req, res) => {
   ok(res, await service.deleteBooking(req.params.id));
 });
 
-module.exports = { create, list, getOne, updateStatus, assignDriver, remove };
+const occupiedDates = asyncHandler(async (req, res) => {
+  const vehicleId = req.query.vehicleId;
+  if (!vehicleId) throw new ApiError(400, "VALIDATION_ERROR", "vehicleId requis");
+  ok(res, await service.getOccupiedDates(String(vehicleId)));
+});
+
+module.exports = { create, list, getOne, updateStatus, assignDriver, remove, occupiedDates };
