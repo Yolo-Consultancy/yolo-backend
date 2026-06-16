@@ -13,9 +13,12 @@ const {
 const RATING_DELAY_MS = 15 * 60 * 1000;
 
 async function listDriverMissions(driverId) {
-  const missions = await Mission.find({ assignee: driverId })
+  const missions = await Mission.find({
+    assignee: driverId,
+    status: { $in: ["en_cours", "terminee"] },
+  })
     .sort({ scheduledAt: -1 })
-    .limit(50);
+    .limit(100);
 
   const missionIds = missions.map((m) => m._id);
   const reports = await TripReport.find({ mission: { $in: missionIds } }).select("mission");
@@ -33,6 +36,9 @@ async function listDriverMissions(driverId) {
       clientName: booking?.clientName || "",
       vehicleName: booking?.vehicleName || "",
       pickupLocation: booking?.pickupLocation || "",
+      dropoffLocation: booking?.dropoffLocation || "",
+      startDate: booking?.startDate ? booking.startDate.toISOString().slice(0, 10) : "",
+      endDate: booking?.endDate ? booking.endDate.toISOString().slice(0, 10) : "",
       hasReport: reportedIds.has(String(m._id)),
     };
   });
