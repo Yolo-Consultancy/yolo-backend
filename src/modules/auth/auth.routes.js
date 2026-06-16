@@ -18,6 +18,8 @@ router.post("/client/register", clientAuth.register);
 router.post("/client/login", loginLimiter, clientAuth.login);
 router.get("/client/me", authenticateClient, clientAuth.me);
 const driverAuth = require("./driver-auth.controller");
+const unifiedAuth = require("./unified-auth.controller");
+router.post("/unified-login", loginLimiter, unifiedAuth.login);
 router.post("/driver/login", loginLimiter, driverAuth.login);
 router.get("/driver/me", authenticateDriver, driverAuth.me);
 router.post("/login", loginLimiter, validate(loginSchema), controller.login);
