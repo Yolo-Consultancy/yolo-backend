@@ -32,14 +32,23 @@ async function seed() {
   }
   console.log(`${seedVehicles.length} véhicules synchronisés`);
 
+  const driverPasswordHash = await hashPassword(env.adminBootstrapPassword);
   const drivers = [
-    { firstName: "Joseph", lastName: "Mbaya", email: "joseph.mbaya@yolo.cd", phone: "+243 81 555 1122", hiredAt: "2024-03-15", salary: 850, pricePerDay: 80, active: true, notes: "Chauffeur VIP" },
-    { firstName: "Pascal", lastName: "Kalonji", email: "pascal.kalonji@yolo.cd", phone: "+243 99 222 3344", hiredAt: "2025-01-10", salary: 720, pricePerDay: 80, active: true, notes: "SUV et longues distances" },
-    { firstName: "André", lastName: "Bwanga", email: "andre.bwanga@yolo.cd", phone: "+243 82 777 8899", hiredAt: "2023-06-01", salary: 950, pricePerDay: 80, active: true, notes: "Chauffeur protocole" },
+    { firstName: "Joseph", lastName: "Mbaya", email: "joseph.mbaya@yolo.cd", phone: "+243 81 555 1122", hiredAt: "2024-03-15", salary: 850, pricePerDay: 80, active: true, notes: "Chauffeur VIP", passwordHash: driverPasswordHash },
+    { firstName: "Pascal", lastName: "Kalonji", email: "pascal.kalonji@yolo.cd", phone: "+243 99 222 3344", hiredAt: "2025-01-10", salary: 720, pricePerDay: 80, active: true, notes: "SUV et longues distances", passwordHash: driverPasswordHash },
+    { firstName: "André", lastName: "Bwanga", email: "andre.bwanga@yolo.cd", phone: "+243 82 777 8899", hiredAt: "2023-06-01", salary: 950, pricePerDay: 80, active: true, notes: "Chauffeur protocole", passwordHash: driverPasswordHash },
   ];
   if ((await Driver.countDocuments()) === 0) {
     await Driver.insertMany(drivers);
-    console.log(`${drivers.length} chauffeurs créés`);
+    console.log(`${drivers.length} chauffeurs créés (mot de passe : ${env.adminBootstrapPassword})`);
+  } else {
+    const updated = await Driver.updateMany(
+      { passwordHash: { $exists: false } },
+      { $set: { passwordHash: driverPasswordHash } },
+    );
+    if (updated.modifiedCount > 0) {
+      console.log(`${updated.modifiedCount} chauffeur(s) — mot de passe initial défini (${env.adminBootstrapPassword})`);
+    }
   }
 
   if (!(await Settings.findOne())) {

@@ -1,6 +1,7 @@
 const ApiError = require("../../utils/ApiError");
 const Driver = require("../../models/Driver");
 const { toDriver } = require("../../utils/serializers");
+const { hashPassword } = require("../auth/auth.service");
 
 async function listDrivers(publicOnly = false) {
   const filter = publicOnly ? { active: true } : {};
@@ -15,7 +16,7 @@ async function getDriver(id) {
 }
 
 async function createDriver(body) {
-  const driver = await Driver.create({
+  const data = {
     firstName: body.firstName,
     lastName: body.lastName,
     email: body.email,
@@ -30,7 +31,11 @@ async function createDriver(body) {
     languages: body.languages,
     city: body.city,
     notes: body.notes,
-  });
+  };
+  if (body.password?.trim()) {
+    data.passwordHash = await hashPassword(body.password.trim());
+  }
+  const driver = await Driver.create(data);
   return toDriver(driver);
 }
 
@@ -53,6 +58,9 @@ async function updateDriver(id, body) {
     city: body.city ?? driver.city,
     notes: body.notes ?? driver.notes,
   });
+  if (body.password?.trim()) {
+    driver.passwordHash = await hashPassword(body.password.trim());
+  }
   await driver.save();
   return toDriver(driver);
 }

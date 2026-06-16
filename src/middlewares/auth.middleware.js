@@ -3,6 +3,7 @@ const env = require("../config/env");
 const ApiError = require("../utils/ApiError");
 const User = require("../models/User");
 const Client = require("../models/Client");
+const Driver = require("../models/Driver");
 
 async function authenticate(req, _res, next) {
   const header = req.headers.authorization || "";
@@ -65,4 +66,25 @@ async function authenticateClient(req, _res, next) {
   }
 }
 
-module.exports = { authenticate, authenticateClient, requireRole, optionalAuth };
+async function authenticateDriver(req, _res, next) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) return next(new ApiError(401, "UNAUTHORIZED", "Token manquant"));
+
+  try {
+    const payload = jwt.verify(token, env.jwtAccessSecret);
+    if (payload.type !== "driver") {
+      return next(new ApiError(401, "UNAUTHORIZED", "Token chauffeur invalide"));
+    }
+    const driver = await Driver.findById(payload.sub).select("-passwordHash");
+    if (!driver || !driver.active) {
+      return next(new ApiError(401, "UNAUTHORIZED", "Chauffeur introuvable"));
+    }
+    req.driver = driver;
+    next();
+  } catch {
+    next(new ApiError(401, "UNAUTHORIZED", "Token invalide ou expiré"));
+  }
+}
+
+module.exports = { authenticate, authenticateClient, authenticateDriver, requireRole, optionalAuth };

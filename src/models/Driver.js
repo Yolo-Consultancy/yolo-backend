@@ -20,6 +20,7 @@ const driverSchema = new mongoose.Schema(
     languages: String,
     city: String,
     notes: String,
+    passwordHash: String,
   },
   { timestamps: true },
 );

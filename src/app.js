@@ -20,6 +20,8 @@ const statsRoutes = require("./modules/stats/stats.routes");
 const notificationsRoutes = require("./modules/notifications/notifications.routes");
 const paymentsRoutes = require("./modules/payments/payments.routes");
 const supportRoutes = require("./modules/support/support.routes");
+const tripReportsRoutes = require("./modules/trip-reports/trip-reports.routes");
+const ratingsRoutes = require("./modules/ratings/ratings.routes");
 
 const app = express();
 
@@ -63,6 +65,8 @@ v1.use("/bookings", bookingsRoutes);
 v1.use("/clients", clientsRoutes);
 v1.use("/users", usersRoutes);
 v1.use("/missions", missionsRoutes);
+v1.use("/trip-reports", tripReportsRoutes);
+v1.use("/ratings", ratingsRoutes);
 v1.use("/settings", settingsRoutes);
 v1.use("/contact", contactRoutes);
 v1.use("/stats", statsRoutes);

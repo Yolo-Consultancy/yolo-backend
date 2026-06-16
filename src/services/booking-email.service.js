@@ -165,4 +165,5 @@ module.exports = {
   buildAdminBookingEmailHtml,
   buildClientStatusEmailHtml,
   statusLabels,
+  resolveAdminEmail,
 };

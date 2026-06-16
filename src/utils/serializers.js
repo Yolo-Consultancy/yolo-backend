@@ -101,6 +101,44 @@ function toMission(doc) {
   };
 }
 
+function toTripReport(doc) {
+  if (!doc) return null;
+  const r = doc.toObject ? doc.toObject() : doc;
+  return {
+    id: String(r._id),
+    missionId: r.mission ? String(r.mission) : "",
+    driverId: r.driver ? String(r.driver) : "",
+    bookingId: r.booking ? String(r.booking) : "",
+    clientName: r.clientName || "",
+    clientEmail: r.clientEmail || "",
+    driverName: r.driverName || "",
+    vehicleName: r.vehicleName || "",
+    notes: r.notes || "",
+    incidents: r.incidents || "",
+    odometerEnd: r.odometerEnd,
+    fuelLevel: r.fuelLevel || "",
+    status: r.status || "soumis",
+    ratingEmailSent: !!r.ratingEmailSent,
+    submittedAt: r.submittedAt ? r.submittedAt.toISOString() : "",
+    createdAt: r.createdAt ? r.createdAt.toISOString() : "",
+  };
+}
+
+function toRating(doc) {
+  if (!doc) return null;
+  const r = doc.toObject ? doc.toObject() : doc;
+  return {
+    id: String(r._id),
+    missionId: r.mission ? String(r.mission) : "",
+    driverName: r.driverName || "",
+    clientName: r.clientName || "",
+    serviceScore: r.serviceScore,
+    driverScore: r.driverScore,
+    comment: r.comment || "",
+    submittedAt: r.submittedAt ? r.submittedAt.toISOString() : "",
+  };
+}
+
 module.exports = {
   toVehicle,
   toBooking,
@@ -108,4 +146,6 @@ module.exports = {
   toClient,
   toUser,
   toMission,
+  toTripReport,
+  toRating,
 };
