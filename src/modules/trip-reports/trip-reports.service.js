@@ -9,8 +9,7 @@ const {
   notifyAdminTripReport,
   generateRatingToken,
 } = require("../../services/trip-report-email.service");
-
-const RATING_DELAY_MS = 15 * 60 * 1000;
+const { sendClientRatingRequest } = require("../../services/rating-email.service");
 
 async function listDriverMissions(driverId) {
   const missions = await Mission.find({
@@ -71,6 +70,7 @@ async function submitTripReport(driverId, body) {
   const booking = mission.booking ? await Booking.findById(mission.booking) : null;
 
   const ratingToken = generateRatingToken();
+  const submittedAt = new Date();
   const report = await TripReport.create({
     mission: missionId,
     driver: driverId,
@@ -84,9 +84,9 @@ async function submitTripReport(driverId, body) {
     odometerEnd: body.odometerEnd ? Number(body.odometerEnd) : undefined,
     fuelLevel: body.fuelLevel?.trim() || "",
     ratingToken,
-    ratingEmailSendAt: new Date(Date.now() + RATING_DELAY_MS),
+    ratingEmailSendAt: submittedAt,
     ratingEmailSent: false,
-    submittedAt: new Date(),
+    submittedAt,
   });
 
   mission.status = "terminee";
@@ -107,9 +107,26 @@ async function submitTripReport(driverId, body) {
   const serialized = toTripReport(report);
   const emailResult = await notifyAdminTripReport(serialized);
 
+  let clientEmailResult = { sent: false, reason: "no_client_email" };
+  try {
+    clientEmailResult = await sendClientRatingRequest({
+      ...serialized,
+      ratingToken: report.ratingToken,
+      clientEmail: report.clientEmail,
+    });
+    if (clientEmailResult.sent || clientEmailResult.reason === "no_client_email") {
+      report.ratingEmailSent = true;
+      await report.save();
+    }
+  } catch (err) {
+    console.error("[YOLO] Erreur envoi e-mail client:", err.message);
+  }
+
   return {
     ...serialized,
     adminEmailSent: emailResult.sent,
+    clientEmailSent: clientEmailResult.sent,
+    clientEmailReason: clientEmailResult.reason,
     ratingScheduledAt: report.ratingEmailSendAt.toISOString(),
   };
 }
