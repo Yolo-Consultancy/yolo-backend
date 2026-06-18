@@ -1,6 +1,17 @@
 const ApiError = require("../../utils/ApiError");
 const Vehicle = require("../../models/Vehicle");
 const { toVehicle } = require("../../utils/serializers");
+const { isMongoId } = require("../../utils/mongoIds");
+
+function vehicleIdFilter(id) {
+  const or = [{ slug: id }];
+  if (isMongoId(id)) or.push({ _id: id });
+  return { $or: or };
+}
+
+async function findVehicleById(id) {
+  return Vehicle.findOne(vehicleIdFilter(id));
+}
 
 function slugify(id, name, brand) {
   if (id && !id.startsWith("vh-")) return id;
@@ -11,6 +22,9 @@ function slugify(id, name, brand) {
 
 function mapPayload(body) {
   const slug = slugify(body.id, body.name, body.brand);
+  const gallery = Array.isArray(body.gallery)
+    ? body.gallery.filter((url) => typeof url === "string" && url.trim())
+    : [];
   return {
     slug,
     name: body.name,
@@ -19,8 +33,8 @@ function mapPayload(body) {
     category: body.category,
     location: body.location,
     pricePerDay: body.pricePerDay,
-    image: body.image || body.gallery?.[0] || "",
-    gallery: body.gallery || [],
+    image: body.image || gallery[0] || "",
+    gallery,
     specs: body.specs,
     description: body.description,
     conditions: body.conditions,
@@ -39,10 +53,7 @@ async function listVehicles(publicOnly = false) {
 }
 
 async function getVehicle(id) {
-  const mongoose = require("mongoose");
-  const or = [{ slug: id }];
-  if (mongoose.Types.ObjectId.isValid(id)) or.push({ _id: id });
-  const vehicle = await Vehicle.findOne({ $or: or });
+  const vehicle = await findVehicleById(id);
   if (!vehicle) throw new ApiError(404, "NOT_FOUND", "Véhicule introuvable");
   return toVehicle(vehicle);
 }
@@ -56,7 +67,7 @@ async function createVehicle(body) {
 }
 
 async function updateVehicle(id, body) {
-  const vehicle = await Vehicle.findOne({ $or: [{ slug: id }, { _id: id }] });
+  const vehicle = await findVehicleById(id);
   if (!vehicle) throw new ApiError(404, "NOT_FOUND", "Véhicule introuvable");
   const data = mapPayload({ ...body, id: vehicle.slug });
   Object.assign(vehicle, data);
@@ -65,7 +76,7 @@ async function updateVehicle(id, body) {
 }
 
 async function deleteVehicle(id) {
-  const vehicle = await Vehicle.findOne({ $or: [{ slug: id }, { _id: id }] });
+  const vehicle = await findVehicleById(id);
   if (!vehicle) throw new ApiError(404, "NOT_FOUND", "Véhicule introuvable");
   vehicle.active = false;
   await vehicle.save();
@@ -73,7 +84,7 @@ async function deleteVehicle(id) {
 }
 
 async function updateGallery(id, gallery) {
-  const vehicle = await Vehicle.findOne({ $or: [{ slug: id }, { _id: id }] });
+  const vehicle = await findVehicleById(id);
   if (!vehicle) throw new ApiError(404, "NOT_FOUND", "Véhicule introuvable");
   vehicle.gallery = gallery;
   vehicle.image = gallery[0] || vehicle.image;
@@ -82,7 +93,7 @@ async function updateGallery(id, gallery) {
 }
 
 async function removeImage(id, url) {
-  const vehicle = await Vehicle.findOne({ $or: [{ slug: id }, { _id: id }] });
+  const vehicle = await findVehicleById(id);
   if (!vehicle) throw new ApiError(404, "NOT_FOUND", "Véhicule introuvable");
   vehicle.gallery = vehicle.gallery.filter((u) => u !== url);
   if (vehicle.image === url) vehicle.image = vehicle.gallery[0] || "";
