@@ -28,6 +28,12 @@ const env = {
   mailUser,
   mailPass,
   adminUrl: process.env.ADMIN_URL || "http://localhost:4173",
+  googleMapsApiKey: (process.env.GOOGLE_MAPS_API_KEY || "").trim(),
+  googlePlaceId: (process.env.GOOGLE_PLACE_ID || "").trim(),
+  googleMapsEmbedUrl: (process.env.GOOGLE_MAPS_EMBED_URL || "").trim(),
+  googleMapsReviewsUrl: (process.env.GOOGLE_MAPS_REVIEWS_URL || "").trim(),
+  googleMapsQuery: (process.env.GOOGLE_MAPS_QUERY || "Gombe, Kinshasa, RDC").trim(),
+  googleBusinessName: (process.env.GOOGLE_BUSINESS_NAME || "YOLO Le Concierge").trim(),
 };
 
 module.exports = env;

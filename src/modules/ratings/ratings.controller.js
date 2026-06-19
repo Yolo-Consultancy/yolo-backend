@@ -15,4 +15,8 @@ const list = asyncHandler(async (_req, res) => {
   ok(res, await service.listRatings());
 });
 
-module.exports = { getByToken, submit, list };
+const listPublic = asyncHandler(async (_req, res) => {
+  ok(res, await service.listPublicRatings());
+});
+
+module.exports = { getByToken, submit, list, listPublic };

@@ -1,6 +1,8 @@
 const ApiError = require("../../utils/ApiError");
 const TripReport = require("../../models/TripReport");
 const Rating = require("../../models/Rating");
+const { fetchGooglePlaceReviews } = require("../../services/google-place.service");
+const env = require("../../config/env");
 
 function clampScore(n) {
   const v = Number(n);
@@ -96,4 +98,87 @@ async function listRatings() {
   }));
 }
 
-module.exports = { getRatingForm, submitRating, listRatings };
+function buildPublicReviewText(r) {
+  const comment = r.comment?.trim();
+  if (comment) return comment;
+
+  const avg = (r.serviceScore + r.driverScore) / 2;
+  if (avg >= 4.5) {
+    return "Expérience premium irréprochable. Je recommande vivement YOLO Le Concierge.";
+  }
+  if (avg >= 4) {
+    return "Très belle expérience de location. Service professionnel et véhicule impeccable.";
+  }
+  if (avg >= 3) {
+    return "Bonne expérience de location avec YOLO Le Concierge.";
+  }
+  return "Merci d'avoir partagé votre retour après votre location.";
+}
+
+function mapInternalReview(r) {
+  const avgScore = Math.round(((r.serviceScore + r.driverScore) / 2) * 10) / 10;
+  return {
+    id: String(r._id),
+    clientName: r.clientName || "Client YOLO",
+    comment: buildPublicReviewText(r),
+    score: avgScore,
+    submittedAt: r.submittedAt ? r.submittedAt.toISOString() : new Date().toISOString(),
+    photoUri: "",
+    source: "internal",
+  };
+}
+
+async function listInternalPublicReviews() {
+  const items = await Rating.find().sort({ submittedAt: -1 }).limit(200);
+
+  const scores = items.flatMap((r) => [r.serviceScore, r.driverScore]);
+  const averageScore = scores.length
+    ? Math.round((scores.reduce((sum, n) => sum + n, 0) / scores.length) * 10) / 10
+    : 0;
+
+  return {
+    averageScore,
+    totalCount: items.length,
+    reviews: items.map(mapInternalReview),
+  };
+}
+
+function mergeReviews(internalReviews, googleReviews) {
+  const seen = new Set(internalReviews.map((r) => r.id));
+  const merged = [...internalReviews];
+  for (const review of googleReviews) {
+    if (!seen.has(review.id)) merged.push(review);
+  }
+  return merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+}
+
+async function listPublicRatings() {
+  const internal = await listInternalPublicReviews();
+
+  const google = await fetchGooglePlaceReviews().catch((err) => {
+    console.error("[ratings] Google fetch failed:", err.message);
+    return null;
+  });
+
+  const reviews = mergeReviews(internal.reviews, google?.reviews || []);
+
+  const averageScore =
+    reviews.length > 0
+      ? Math.round(
+          (reviews.reduce((sum, r) => sum + r.score, 0) / reviews.length) * 10,
+        ) / 10
+      : internal.averageScore;
+
+  const totalCount = Math.max(internal.totalCount, google?.totalCount || 0, reviews.length);
+
+  return {
+    source: google?.reviews?.length ? (internal.reviews.length ? "mixed" : "google") : "internal",
+    businessName: google?.businessName || env.googleBusinessName,
+    averageScore: google?.averageScore || averageScore,
+    totalCount,
+    reviews,
+    mapsUri: google?.mapsUri || env.googleMapsReviewsUrl || "https://www.google.com/maps",
+  };
+}
+
+module.exports = { getRatingForm, submitRating, listRatings, listPublicRatings };
