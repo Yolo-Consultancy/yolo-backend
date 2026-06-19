@@ -81,6 +81,7 @@ function toUser(doc) {
     name: u.name,
     email: u.email,
     role: u.role,
+    portalScope: u.portalScope || "all",
     active: u.active !== false,
     createdAt: u.createdAt ? u.createdAt.toISOString().slice(0, 10) : "",
   };

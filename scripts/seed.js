@@ -8,24 +8,60 @@ const Settings = require("../src/models/Settings");
 const { hashPassword } = require("../src/modules/auth/auth.service");
 const seedVehicles = require("./vehicles.seed");
 
+async function ensurePortalAdmin({ email, name, portalScope, password }) {
+  const normalized = email.toLowerCase();
+  const passwordHash = await hashPassword(password);
+  let user = await User.findOne({ email: normalized });
+  if (!user) {
+    user = await User.create({
+      name,
+      email: normalized,
+      passwordHash,
+      role: "admin",
+      portalScope,
+      active: true,
+    });
+    console.log(`Admin ${portalScope} créé : ${normalized} / ${password}`);
+    return user;
+  }
+
+  user.name = name;
+  user.role = "admin";
+  user.portalScope = portalScope;
+  user.active = true;
+  user.passwordHash = passwordHash;
+  await user.save();
+  console.log(`Admin ${portalScope} mis à jour : ${normalized} / ${password}`);
+  return user;
+}
+
 async function seed() {
   await mongoose.connect(env.mongoUri);
   console.log("Connexion MongoDB OK");
 
+  const adminPassword = env.adminBootstrapPassword;
   const adminEmail = env.adminBootstrapEmail.toLowerCase();
-  let admin = await User.findOne({ email: adminEmail });
-  if (!admin) {
-    admin = await User.create({
-      name: "Admin YOLO",
-      email: adminEmail,
-      passwordHash: await hashPassword(env.adminBootstrapPassword),
-      role: "admin",
-      active: true,
-    });
-    console.log(`Admin créé : ${adminEmail}`);
-  } else {
-    console.log(`Admin existant : ${adminEmail}`);
-  }
+
+  await ensurePortalAdmin({
+    email: adminEmail,
+    name: "Admin Location YOLO",
+    portalScope: "vehicules",
+    password: adminPassword,
+  });
+
+  await ensurePortalAdmin({
+    email: process.env.ADMIN_DEMENAGEMENT_EMAIL || "admin.demenagement@yolo.cd",
+    name: "Admin Déménagement YOLO",
+    portalScope: "demenagement",
+    password: process.env.ADMIN_DEMENAGEMENT_PASSWORD || adminPassword,
+  });
+
+  await ensurePortalAdmin({
+    email: process.env.ADMIN_SURMESURE_EMAIL || "admin.surmesure@yolo.cd",
+    name: "Admin Sur Mesure YOLO",
+    portalScope: "sur_mesure",
+    password: process.env.ADMIN_SURMESURE_PASSWORD || adminPassword,
+  });
 
   for (const v of seedVehicles) {
     await Vehicle.findOneAndUpdate({ slug: v.slug }, v, { upsert: true, new: true });

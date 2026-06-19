@@ -7,6 +7,16 @@ const contactMessageSchema = new mongoose.Schema(
     phone: String,
     subject: String,
     message: String,
+    serviceType: {
+      type: String,
+      enum: ["vehicules", "demenagement", "sur_mesure", "general"],
+      default: "general",
+    },
+    status: {
+      type: String,
+      enum: ["nouveau", "en_cours", "traite", "annule"],
+      default: "nouveau",
+    },
     handled: { type: Boolean, default: false },
   },
   { timestamps: true },
