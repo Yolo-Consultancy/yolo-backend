@@ -9,7 +9,7 @@ const register = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-  ok(res, await service.loginClient(req.body.email, req.body.password));
+  ok(res, await service.loginClient(req.body.email, req.body.password, req.body.portal));
 });
 
 const me = asyncHandler(async (req, res) => {

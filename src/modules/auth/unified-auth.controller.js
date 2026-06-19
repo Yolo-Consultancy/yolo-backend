@@ -15,7 +15,7 @@ function setRefreshCookie(res, token) {
 }
 
 const login = asyncHandler(async (req, res) => {
-  const result = await unifiedAuth.unifiedLogin(req.body.email, req.body.password);
+  const result = await unifiedAuth.unifiedLogin(req.body.email, req.body.password, req.body.portal);
 
   if (result.role === "admin" && result.refreshToken) {
     setRefreshCookie(res, result.refreshToken);

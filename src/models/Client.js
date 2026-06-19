@@ -8,6 +8,11 @@ const clientSchema = new mongoose.Schema(
     phone: String,
     countryCode: String,
     passwordHash: String,
+    portalScope: {
+      type: String,
+      enum: ["vehicules", "demenagement", "sur_mesure"],
+      default: "vehicules",
+    },
     notes: String,
     totalBookings: { type: Number, default: 0 },
     totalSpent: { type: Number, default: 0 },
