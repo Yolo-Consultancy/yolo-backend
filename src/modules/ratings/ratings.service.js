@@ -152,6 +152,12 @@ function mergeReviews(internalReviews, googleReviews) {
   return merged.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
 }
 
+const MIN_PUBLIC_REVIEW_SCORE = 3;
+
+function filterPublicReviews(reviews) {
+  return reviews.filter((r) => Number(r.score) >= MIN_PUBLIC_REVIEW_SCORE);
+}
+
 async function listPublicRatings() {
   const internal = await listInternalPublicReviews();
 
@@ -160,21 +166,21 @@ async function listPublicRatings() {
     return null;
   });
 
-  const reviews = mergeReviews(internal.reviews, google?.reviews || []);
+  const reviews = filterPublicReviews(mergeReviews(internal.reviews, google?.reviews || []));
 
   const averageScore =
     reviews.length > 0
       ? Math.round(
           (reviews.reduce((sum, r) => sum + r.score, 0) / reviews.length) * 10,
         ) / 10
-      : internal.averageScore;
+      : google?.averageScore || internal.averageScore || 0;
 
-  const totalCount = Math.max(internal.totalCount, google?.totalCount || 0, reviews.length);
+  const totalCount = reviews.length;
 
   return {
     source: google?.reviews?.length ? (internal.reviews.length ? "mixed" : "google") : "internal",
     businessName: google?.businessName || env.googleBusinessName,
-    averageScore: google?.averageScore || averageScore,
+    averageScore,
     totalCount,
     reviews,
     mapsUri: google?.mapsUri || env.googleMapsReviewsUrl || "https://www.google.com/maps",
