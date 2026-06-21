@@ -3,7 +3,7 @@ const ApiError = require("../../utils/ApiError");
 const env = require("../../config/env");
 const Client = require("../../models/Client");
 const { hashPassword } = require("./auth.service");
-const { normalizePortal, assertPortalMatch } = require("../../utils/portal");
+const { normalizePortal } = require("../../utils/portal");
 
 function signClientToken(client) {
   return jwt.sign(
@@ -21,7 +21,7 @@ function toClientAccount(doc) {
     email: doc.email,
     phone: doc.phone || "",
     countryCode: doc.countryCode || "+243",
-    portalScope: doc.portalScope || "vehicules",
+    portalScope: doc.portalScope || "all",
     createdAt: doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString(),
   };
 }
@@ -35,10 +35,7 @@ async function registerClient(data) {
     throw new ApiError(400, "VALIDATION_ERROR", "Mot de passe trop court (min. 6 caractères)");
   }
 
-  const portalScope = normalizePortal(data.portal);
-  if (!portalScope) {
-    throw new ApiError(400, "VALIDATION_ERROR", "Portail d'inscription requis");
-  }
+  const portalScope = data.portal ? normalizePortal(data.portal) : "all";
 
   const exists = await Client.findOne({ email });
   if (exists) throw new ApiError(409, "CONFLICT", "Un compte existe déjà avec cet e-mail");
@@ -49,7 +46,7 @@ async function registerClient(data) {
     email,
     phone: data.phone?.trim() || "",
     countryCode: data.countryCode || "+243",
-    portalScope,
+    portalScope: portalScope || "all",
     passwordHash: await hashPassword(data.password),
   });
 
@@ -57,7 +54,7 @@ async function registerClient(data) {
   return { accessToken: signClientToken(client), account };
 }
 
-async function loginClient(email, password, loginPortal) {
+async function loginClient(email, password) {
   const client = await Client.findOne({ email: email.trim().toLowerCase() });
   if (!client?.passwordHash) {
     throw new ApiError(401, "INVALID_CREDENTIALS", "Aucun compte trouvé avec cet e-mail");
@@ -66,8 +63,6 @@ async function loginClient(email, password, loginPortal) {
   const bcrypt = require("bcrypt");
   const valid = await bcrypt.compare(password, client.passwordHash);
   if (!valid) throw new ApiError(401, "INVALID_CREDENTIALS", "Mot de passe incorrect");
-
-  assertPortalMatch(client.portalScope, loginPortal);
 
   const account = toClientAccount(client);
   return { accessToken: signClientToken(client), account };
