@@ -18,6 +18,7 @@ const contactMessageSchema = new mongoose.Schema(
       default: "nouveau",
     },
     handled: { type: Boolean, default: false },
+    quoteData: { type: mongoose.Schema.Types.Mixed, default: null },
   },
   { timestamps: true },
 );

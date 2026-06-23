@@ -7,6 +7,9 @@ const list = asyncHandler(async (_req, res) => ok(res, await service.listMovingM
 const busyMovers = asyncHandler(async (req, res) => {
   ok(res, await service.listBusyMoverIds(req.query.excludeMissionId));
 });
+const busyDates = asyncHandler(async (_req, res) => {
+  ok(res, await service.getBusyDates());
+});
 const getOne = asyncHandler(async (req, res) => ok(res, await service.getMovingMission(req.params.id)));
 const upsert = asyncHandler(async (req, res) => {
   const id = toMongoId(req.params.id);
@@ -20,4 +23,4 @@ const create = asyncHandler(async (req, res) => {
 });
 const remove = asyncHandler(async (req, res) => ok(res, await service.deleteMovingMission(req.params.id)));
 
-module.exports = { list, getOne, upsert, create, remove, busyMovers };
+module.exports = { list, getOne, upsert, create, remove, busyMovers, busyDates };

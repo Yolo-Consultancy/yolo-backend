@@ -4,6 +4,8 @@ const controller = require("./moving-missions.controller");
 
 const router = express.Router();
 
+router.get("/busy-dates", controller.busyDates);
+
 router.use(authenticate, requireRole("admin", "agent"));
 router.get("/", controller.list);
 router.get("/busy-movers", controller.busyMovers);

@@ -125,10 +125,21 @@ async function listBusyMoverIds(excludeMissionId) {
   return [...new Set(missions.map((m) => String(m.assignee)))];
 }
 
+async function getBusyDates() {
+  const missions = await MovingMission.find({ status: "en_cours" }).select("scheduledAt");
+  const dates = new Set();
+  for (const mission of missions) {
+    if (!mission.scheduledAt) continue;
+    dates.add(mission.scheduledAt.toISOString().slice(0, 10));
+  }
+  return [...dates].sort();
+}
+
 module.exports = {
   listMovingMissions,
   getMovingMission,
   upsertMovingMission,
   deleteMovingMission,
   listBusyMoverIds,
+  getBusyDates,
 };
