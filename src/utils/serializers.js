@@ -102,6 +102,38 @@ function toMission(doc) {
   };
 }
 
+function toMover(doc) {
+  if (!doc) return null;
+  const d = doc.toObject ? doc.toObject() : doc;
+  return {
+    id: String(d._id),
+    firstName: d.firstName,
+    lastName: d.lastName,
+    email: d.email || "",
+    phone: d.phone || "",
+    hiredAt: d.hiredAt || (d.createdAt ? d.createdAt.toISOString().slice(0, 10) : ""),
+    salary: d.salary ?? 0,
+    active: d.active !== false,
+    notes: d.notes || "",
+    createdAt: d.createdAt ? d.createdAt.toISOString().slice(0, 10) : "",
+  };
+}
+
+function toMovingMission(doc) {
+  if (!doc) return null;
+  const m = doc.toObject ? doc.toObject() : doc;
+  return {
+    id: String(m._id),
+    contactMessageId: m.contactMessage ? String(m.contactMessage) : "",
+    assigneeId: m.assignee ? String(m.assignee) : "",
+    assigneeName: m.assigneeName || "",
+    type: m.type,
+    scheduledAt: m.scheduledAt ? m.scheduledAt.toISOString() : "",
+    status: m.status,
+    notes: m.notes || "",
+  };
+}
+
 function toTripReport(doc) {
   if (!doc) return null;
   const r = doc.toObject ? doc.toObject() : doc;
@@ -147,6 +179,8 @@ module.exports = {
   toClient,
   toUser,
   toMission,
+  toMover,
+  toMovingMission,
   toTripReport,
   toRating,
 };
