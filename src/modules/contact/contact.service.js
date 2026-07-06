@@ -1,6 +1,5 @@
 const ApiError = require("../../utils/ApiError");
 const ContactMessage = require("../../models/ContactMessage");
-const MovingMission = require("../../models/MovingMission");
 const { isMongoId } = require("../../utils/mongoIds");
 
 const SERVICE_TYPES = new Set(["vehicules", "demenagement", "sur_mesure", "general"]);
@@ -27,42 +26,6 @@ function normalizeServiceType(value) {
   return SERVICE_TYPES.has(v) ? v : "general";
 }
 
-function parseMoveDate(moveDate) {
-  if (!moveDate) return null;
-  const parsed = new Date(moveDate);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function buildMissionNotesFromQuote(quoteData) {
-  if (!quoteData || quoteData.type !== "demenagement_devis") return "";
-  const parts = [];
-  if (quoteData.bedrooms != null) {
-    parts.push(`${quoteData.bedrooms} ch. · ${quoteData.livingRooms ?? 0} salon(s)`);
-  }
-  if (quoteData.additionalNotes?.trim()) {
-    parts.push(quoteData.additionalNotes.trim());
-  }
-  return parts.join("\n");
-}
-
-async function createMovingMissionForQuote(msg) {
-  const quoteData = msg.quoteData;
-  if (msg.serviceType !== "demenagement") return null;
-  if (!quoteData || quoteData.type !== "demenagement_devis") return null;
-
-  const existing = await MovingMission.findOne({ contactMessage: msg._id });
-  if (existing) return existing;
-
-  const scheduledAt = parseMoveDate(quoteData.moveDate) || new Date();
-  return MovingMission.create({
-    contactMessage: msg._id,
-    type: "complet",
-    scheduledAt,
-    status: "a_affecter",
-    notes: buildMissionNotesFromQuote(quoteData),
-  });
-}
-
 async function createMessage(body) {
   const serviceType = normalizeServiceType(body.serviceType);
   const msg = await ContactMessage.create({
@@ -76,10 +39,6 @@ async function createMessage(body) {
     handled: false,
     quoteData: body.quoteData || null,
   });
-
-  if (serviceType === "demenagement") {
-    await createMovingMissionForQuote(msg);
-  }
 
   return serializeMessage(msg);
 }

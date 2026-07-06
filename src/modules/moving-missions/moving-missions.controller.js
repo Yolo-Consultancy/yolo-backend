@@ -5,7 +5,10 @@ const service = require("./moving-missions.service");
 
 const list = asyncHandler(async (_req, res) => ok(res, await service.listMovingMissions()));
 const busyMovers = asyncHandler(async (req, res) => {
-  ok(res, await service.listBusyMoverIds(req.query.excludeMissionId));
+  ok(
+    res,
+    await service.listBusyMoverIds(req.query.scheduledAt, req.query.excludeMissionId),
+  );
 });
 const busyDates = asyncHandler(async (_req, res) => {
   ok(res, await service.getBusyDates());

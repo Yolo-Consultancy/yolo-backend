@@ -39,7 +39,7 @@ async function maybeNotifyDriver({ missionDoc, driver, bookingId, shouldNotify }
 }
 
 async function listMissions() {
-  const items = await Mission.find().sort({ scheduledAt: -1 });
+  const items = await Mission.find({ assignee: { $ne: null } }).sort({ scheduledAt: -1 });
   return items.map(toMission);
 }
 
@@ -116,6 +116,21 @@ async function upsertMission(body) {
 
   if (assigneeId) {
     await assertDriverNotBusy(assigneeId);
+  }
+
+  if (!assigneeId) {
+    throw new ApiError(
+      400,
+      "ASSIGNEE_REQUIRED",
+      "Affectez un chauffeur pour créer une mission.",
+    );
+  }
+  if (!bookingId) {
+    throw new ApiError(
+      400,
+      "BOOKING_REQUIRED",
+      "Associez une réservation à la mission.",
+    );
   }
 
   const mission = await Mission.create({

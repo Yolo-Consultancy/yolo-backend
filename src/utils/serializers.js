@@ -122,11 +122,23 @@ function toMover(doc) {
 function toMovingMission(doc) {
   if (!doc) return null;
   const m = doc.toObject ? doc.toObject() : doc;
+  const assigneeIds = m.assignees?.length
+    ? m.assignees.map((id) => String(id))
+    : m.assignee
+      ? [String(m.assignee)]
+      : [];
+  const assigneeNames = m.assigneeNames?.length
+    ? m.assigneeNames
+    : m.assigneeName
+      ? [m.assigneeName]
+      : [];
   return {
     id: String(m._id),
     contactMessageId: m.contactMessage ? String(m.contactMessage) : "",
-    assigneeId: m.assignee ? String(m.assignee) : "",
-    assigneeName: m.assigneeName || "",
+    assigneeIds,
+    assigneeNames,
+    assigneeId: assigneeIds[0] || "",
+    assigneeName: assigneeNames.join(", "),
     type: m.type,
     scheduledAt: m.scheduledAt ? m.scheduledAt.toISOString() : "",
     status: m.status,

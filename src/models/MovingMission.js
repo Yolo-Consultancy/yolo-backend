@@ -3,6 +3,9 @@ const mongoose = require("mongoose");
 const movingMissionSchema = new mongoose.Schema(
   {
     contactMessage: { type: mongoose.Schema.Types.ObjectId, ref: "ContactMessage" },
+    assignees: [{ type: mongoose.Schema.Types.ObjectId, ref: "Mover" }],
+    assigneeNames: [String],
+    /** @deprecated Conservé pour compatibilité — utiliser assignees */
     assignee: { type: mongoose.Schema.Types.ObjectId, ref: "Mover" },
     assigneeName: String,
     type: {
