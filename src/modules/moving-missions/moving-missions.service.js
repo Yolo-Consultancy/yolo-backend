@@ -201,18 +201,45 @@ async function deleteMovingMission(id) {
   return { deleted: true };
 }
 
-async function getBusyDates() {
+async function getBusyDateSummaries() {
   const missions = await MovingMission.find({
     status: { $in: ["a_affecter", "en_cours"] },
     ...ASSIGNED_MISSION_FILTER,
-  }).select("scheduledAt");
+  })
+    .select("scheduledAt assignees assigneeNames assignee assigneeName status contactMessage")
+    .populate("contactMessage", "name")
+    .lean();
 
-  const dates = new Set();
+  const byDate = new Map();
+
   for (const mission of missions) {
     if (!mission.scheduledAt) continue;
-    dates.add(mission.scheduledAt.toISOString().slice(0, 10));
+    const date = mission.scheduledAt.toISOString().slice(0, 10);
+    const assigneeNames = mission.assigneeNames?.length
+      ? mission.assigneeNames.filter(Boolean)
+      : mission.assigneeName
+        ? [mission.assigneeName]
+        : [];
+    const moverCount = Math.max(
+      mission.assignees?.length || (mission.assignee ? 1 : 0),
+      assigneeNames.length,
+    );
+    const clientName = mission.contactMessage?.name?.trim() || "Client YOLO";
+
+    const entry = {
+      clientName,
+      moverCount,
+      moverNames: assigneeNames,
+      status: mission.status,
+    };
+
+    if (!byDate.has(date)) byDate.set(date, []);
+    byDate.get(date).push(entry);
   }
-  return [...dates].sort();
+
+  return [...byDate.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, dayMissions]) => ({ date, missions: dayMissions }));
 }
 
 module.exports = {
@@ -221,5 +248,5 @@ module.exports = {
   upsertMovingMission,
   deleteMovingMission,
   listBusyMoverIds,
-  getBusyDates,
+  getBusyDateSummaries,
 };

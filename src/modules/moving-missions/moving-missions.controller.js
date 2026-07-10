@@ -11,7 +11,7 @@ const busyMovers = asyncHandler(async (req, res) => {
   );
 });
 const busyDates = asyncHandler(async (_req, res) => {
-  ok(res, await service.getBusyDates());
+  ok(res, await service.getBusyDateSummaries());
 });
 const getOne = asyncHandler(async (req, res) => ok(res, await service.getMovingMission(req.params.id)));
 const upsert = asyncHandler(async (req, res) => {

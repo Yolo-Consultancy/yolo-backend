@@ -11,6 +11,7 @@ const {
   notifyAdminNewBooking,
   notifyClientBookingStatusChange,
 } = require("../../services/booking-email.service");
+const { notifyAdminNewBookingWhatsApp } = require("../../services/booking-whatsapp.service");
 
 const ACTIVE_STATUSES = ["en_attente", "confirmee", "payee"];
 
@@ -139,7 +140,18 @@ async function createBooking(payload) {
     console.warn("[YOLO] Notification admin non envoyée:", emailResult.reason || "unknown");
   }
 
-  return { ...bookingDto, adminEmailSent: emailResult.sent, adminEmailReason: emailResult.reason };
+  const whatsappResult = await notifyAdminNewBookingWhatsApp(bookingDto);
+  if (!whatsappResult.sent) {
+    console.warn("[YOLO] Notification WhatsApp admin non envoyée:", whatsappResult.reason || "unknown");
+  }
+
+  return {
+    ...bookingDto,
+    adminEmailSent: emailResult.sent,
+    adminEmailReason: emailResult.reason,
+    adminWhatsappSent: whatsappResult.sent,
+    adminWhatsappReason: whatsappResult.reason,
+  };
 }
 
 async function listBookings(query, isAdmin) {

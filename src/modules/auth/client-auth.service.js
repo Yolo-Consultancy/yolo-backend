@@ -16,6 +16,7 @@ function signClientToken(client) {
 function toClientAccount(doc) {
   return {
     id: String(doc._id),
+    civility: doc.civility || "M.",
     firstName: doc.firstName,
     lastName: doc.lastName,
     email: doc.email,
@@ -41,6 +42,7 @@ async function registerClient(data) {
   if (exists) throw new ApiError(409, "CONFLICT", "Un compte existe déjà avec cet e-mail");
 
   const client = await Client.create({
+    civility: data.civility?.trim() || "M.",
     firstName: data.firstName.trim(),
     lastName: data.lastName.trim(),
     email,

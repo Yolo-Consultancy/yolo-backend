@@ -34,6 +34,9 @@ const env = {
   googleMapsReviewsUrl: (process.env.GOOGLE_MAPS_REVIEWS_URL || "").trim(),
   googleMapsQuery: (process.env.GOOGLE_MAPS_QUERY || "Gombe, Kinshasa, RDC").trim(),
   googleBusinessName: (process.env.GOOGLE_BUSINESS_NAME || "YOLO Le Concierge").trim(),
+  whatsappAccessToken: (process.env.WHATSAPP_ACCESS_TOKEN || "").trim(),
+  whatsappPhoneNumberId: (process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim(),
+  callMeBotWhatsappApiKey: (process.env.CALLMEBOT_WHATSAPP_APIKEY || "").trim(),
 };
 
 module.exports = env;

@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const clientSchema = new mongoose.Schema(
   {
+    civility: String,
     firstName: String,
     lastName: String,
     email: { type: String, lowercase: true },
