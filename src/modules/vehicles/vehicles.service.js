@@ -1,5 +1,6 @@
 const ApiError = require("../../utils/ApiError");
 const Vehicle = require("../../models/Vehicle");
+const Booking = require("../../models/Booking");
 const { toVehicle } = require("../../utils/serializers");
 const { isMongoId } = require("../../utils/mongoIds");
 
@@ -78,9 +79,21 @@ async function updateVehicle(id, body) {
 async function deleteVehicle(id) {
   const vehicle = await findVehicleById(id);
   if (!vehicle) throw new ApiError(404, "NOT_FOUND", "Véhicule introuvable");
-  vehicle.active = false;
-  await vehicle.save();
-  return { deleted: true };
+
+  const activeBookings = await Booking.countDocuments({
+    vehicle: vehicle._id,
+    status: { $nin: ["annulee", "terminee"] },
+  });
+  if (activeBookings > 0) {
+    throw new ApiError(
+      409,
+      "CONFLICT",
+      "Impossible de supprimer ce véhicule : des réservations actives y sont liées.",
+    );
+  }
+
+  await Vehicle.deleteOne({ _id: vehicle._id });
+  return { deleted: true, permanent: true };
 }
 
 async function updateGallery(id, gallery) {

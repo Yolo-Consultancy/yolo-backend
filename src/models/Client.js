@@ -9,6 +9,8 @@ const clientSchema = new mongoose.Schema(
     phone: String,
     countryCode: String,
     passwordHash: String,
+    passwordResetTokenHash: String,
+    passwordResetExpires: Date,
     portalScope: {
       type: String,
       enum: ["vehicules", "demenagement", "sur_mesure", "all"],
