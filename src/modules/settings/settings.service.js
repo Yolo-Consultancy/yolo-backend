@@ -2,7 +2,7 @@ const Settings = require("../../models/Settings");
 
 const defaults = {
   companyName: "YOLO Le Concierge",
-  whatsappNumber: "243828863897",
+  whatsappNumber: "243830538687",
   contactEmail: "contact@yololeconcierge.com",
   address:
     "N° Avenue Tabu ley, (Ex. Tombalbaye), Quartier Golfe, Gombe, Kinshasa RD Congo",
@@ -17,13 +17,27 @@ const LEGACY_ADDRESSES = new Set([
   "Kinshasa, RDC",
 ]);
 
+const LEGACY_WHATSAPP_NUMBER = "243828863897";
+
+function normalizeWhatsAppNumber(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
 async function getSettings() {
   let doc = await Settings.findOne();
   if (!doc) {
     doc = await Settings.create(defaults);
-  } else if (!doc.address?.trim() || LEGACY_ADDRESSES.has(doc.address.trim())) {
-    doc.address = defaults.address;
-    await doc.save();
+  } else {
+    let changed = false;
+    if (!doc.address?.trim() || LEGACY_ADDRESSES.has(doc.address.trim())) {
+      doc.address = defaults.address;
+      changed = true;
+    }
+    if (normalizeWhatsAppNumber(doc.whatsappNumber) === LEGACY_WHATSAPP_NUMBER) {
+      doc.whatsappNumber = defaults.whatsappNumber;
+      changed = true;
+    }
+    if (changed) await doc.save();
   }
   const s = doc.toObject();
   return {
