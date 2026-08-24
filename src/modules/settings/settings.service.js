@@ -23,6 +23,17 @@ function normalizeWhatsAppNumber(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function isLegacyWhatsAppNumber(value) {
+  const digits = normalizeWhatsAppNumber(value);
+  return (
+    !digits ||
+    digits === LEGACY_WHATSAPP_NUMBER ||
+    digits === "0828863897" ||
+    digits === "828863897" ||
+    digits.endsWith("828863897")
+  );
+}
+
 async function getSettings() {
   let doc = await Settings.findOne();
   if (!doc) {
@@ -33,7 +44,7 @@ async function getSettings() {
       doc.address = defaults.address;
       changed = true;
     }
-    if (normalizeWhatsAppNumber(doc.whatsappNumber) === LEGACY_WHATSAPP_NUMBER) {
+    if (isLegacyWhatsAppNumber(doc.whatsappNumber)) {
       doc.whatsappNumber = defaults.whatsappNumber;
       changed = true;
     }
