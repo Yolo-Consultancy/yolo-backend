@@ -19,6 +19,7 @@ const movingMissionsRoutes = require("./modules/moving-missions/moving-missions.
 const settingsRoutes = require("./modules/settings/settings.routes");
 const contactRoutes = require("./modules/contact/contact.routes");
 const statsRoutes = require("./modules/stats/stats.routes");
+const analyticsRoutes = require("./modules/analytics/analytics.routes");
 const notificationsRoutes = require("./modules/notifications/notifications.routes");
 const paymentsRoutes = require("./modules/payments/payments.routes");
 const supportRoutes = require("./modules/support/support.routes");
@@ -74,6 +75,7 @@ v1.use("/ratings", ratingsRoutes);
 v1.use("/settings", settingsRoutes);
 v1.use("/contact", contactRoutes);
 v1.use("/stats", statsRoutes);
+v1.use("/analytics", analyticsRoutes);
 
 app.use("/api/v1", v1);
 app.use("/api/notifications", notificationsRoutes);
